@@ -27,7 +27,7 @@ import type {
   SessionInfo,
   SessionInboxInfo,
   ShellInfo,
-  SkillInfo,
+  SkillListItem,
   VcsInfo,
   OpenCodeEvent,
   OpenCodeClient,
@@ -81,7 +81,7 @@ type LocationData = {
   // Currently running shell commands for this location, keyed by shell id. Entries are removed
   // once the command exits or is deleted, so this only ever holds in-flight shells.
   shell?: Record<string, ShellWithLocation>
-  skill?: SkillInfo[]
+  skill?: SkillListItem[]
 }
 
 type Store = {

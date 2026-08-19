@@ -23,6 +23,7 @@ describe("SkillPlugin.Plugin", () => {
           app: { name: "test", version: "1.2.3", channel: "beta" },
           skill: {
             list: () => Effect.die("unused skill.list"),
+            update: () => Effect.die("unused skill.update"),
             transform: skill.transform,
             reload: skill.reload,
           },
@@ -58,6 +59,7 @@ describe("SkillPlugin.Plugin", () => {
         host({
           skill: {
             list: () => Effect.die("unused skill.list"),
+            update: () => Effect.die("unused skill.update"),
             transform: skill.transform,
             reload: skill.reload,
           },

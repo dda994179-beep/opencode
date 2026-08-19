@@ -34,6 +34,12 @@ export const Info = Schema.Struct({
   content: Schema.String,
 }).annotate({ identifier: "Skill.Info" })
 
+export interface ListItem extends Schema.Schema.Type<typeof ListItem> {}
+export const ListItem = Schema.Struct({
+  ...Info.fields,
+  enabled: Schema.Boolean,
+}).annotate({ identifier: "Skill.ListItem" })
+
 const Updated = ephemeral({ type: "skill.updated", schema: {} })
 export const Event = { Updated, Definitions: inventory(Updated) }
 

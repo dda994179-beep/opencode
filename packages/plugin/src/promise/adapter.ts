@@ -258,6 +258,7 @@ export function fromPromise(plugin: Plugin) {
           },
           skill: {
             list: adaptApiMethod(SkillEndpoints["skill.list"], host.skill.list),
+            update: adaptApiMethod(SkillEndpoints["skill.update"], host.skill.update),
             transform: transform(host.skill),
             reload: () => run(host.skill.reload()),
           },

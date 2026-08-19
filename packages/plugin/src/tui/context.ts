@@ -18,7 +18,7 @@ import type {
   SessionMessageInfo,
   SessionInboxInfo,
   ShellInfo,
-  SkillInfo,
+  SkillListItem,
   VcsInfo,
 } from "@opencode-ai/client"
 import type { ResolvedTheme } from "@opencode-ai/theme/tui"
@@ -129,7 +129,7 @@ export interface Data {
     readonly model: LocationCollection<ModelInfo>
     readonly provider: LocationCollection<ProviderInfo>
     readonly reference: LocationCollection<ReferenceInfo>
-    readonly skill: LocationCollection<SkillInfo>
+    readonly skill: LocationCollection<SkillListItem>
   }
 }
 

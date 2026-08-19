@@ -1377,11 +1377,20 @@ export interface CommandApi<E = never> {
 export type Endpoint18_0Input = {
   readonly location?: { readonly directory?: string | undefined; readonly workspace?: string | undefined } | undefined
 }
-export type Endpoint18_0Output = { readonly location: Location.Info; readonly data: ReadonlyArray<Skill.Info> }
+export type Endpoint18_0Output = { readonly location: Location.Info; readonly data: ReadonlyArray<Skill.ListItem> }
 export type SkillListOperation<E = never> = (input?: Endpoint18_0Input) => Effect.Effect<Endpoint18_0Output, E>
+
+export type Endpoint18_1Input = {
+  readonly skillID: Skill.ID
+  readonly location?: { readonly directory?: string | undefined; readonly workspace?: string | undefined } | undefined
+  readonly enabled: boolean
+}
+export type Endpoint18_1Output = void
+export type SkillUpdateOperation<E = never> = (input: Endpoint18_1Input) => Effect.Effect<Endpoint18_1Output, E>
 
 export interface SkillApi<E = never> {
   readonly list: SkillListOperation<E>
+  readonly update: SkillUpdateOperation<E>
 }
 
 export type Endpoint19_0Output = OpenCodeEvent

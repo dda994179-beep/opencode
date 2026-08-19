@@ -71,6 +71,7 @@ const startEntries = Effect.fnUntraced(function* (entries: Entry[], directory: s
     host({
       skill: {
         list: () => Effect.die("unused skill.list"),
+        update: () => Effect.die("unused skill.update"),
         transform: service.transform,
         reload: service.reload,
       },

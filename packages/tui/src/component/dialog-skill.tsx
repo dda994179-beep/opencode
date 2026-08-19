@@ -6,23 +6,29 @@ import { useTheme } from "../context/theme"
 import { errorMessage } from "../util/error"
 import { useData } from "../context/data"
 import type { LocationRef } from "@opencode-ai/client"
+import { useClient } from "../context/client"
+import { useToast } from "../ui/toast"
 
 export type DialogSkillProps = {
   location?: LocationRef
-  onSelect: (skill: string) => void
 }
 
 export function DialogSkill(props: DialogSkillProps) {
   const dialog = useDialog()
   const data = useData()
+  const client = useClient()
+  const toast = useToast()
   const theme = useTheme()
   dialog.setSize("large")
 
   const [loadError, setLoadError] = createSignal<unknown>()
+  const [pending, setPending] = createSignal<string>()
+  const [selected, setSelected] = createSignal<string>()
 
-  const [skills] = createResource(() =>
+  const [skills, { refetch }] = createResource(() =>
     Promise.resolve()
       .then(async () => {
+        setLoadError(undefined)
         const current = data.location.skill.list(props.location)
         if (current) return current
         await data.location.skill.sync(props.location)
@@ -38,18 +44,44 @@ export function DialogSkill(props: DialogSkillProps) {
 
   const showError = createMemo(() => Boolean(loadError()))
 
+  const toggle = async (id: string) => {
+    if (pending()) return
+    const skill = skills()?.find((item) => item.id === id)
+    if (!skill) return
+    setPending(id)
+    const error = await client.api.skill
+      .update({
+        skillID: skill.id,
+        enabled: !skill.enabled,
+        location: props.location
+          ? { directory: props.location.directory, workspace: props.location.workspaceID }
+          : undefined,
+      })
+      .then(
+        () => undefined,
+        (error) => error,
+      )
+    if (error) {
+      toast.show({ title: "Could not update skill", message: errorMessage(error), variant: "error" })
+      setPending(undefined)
+      return
+    }
+    data.location.skill.invalidate(props.location)
+    await data.location.skill.sync(props.location)
+    await refetch()
+    setPending(undefined)
+  }
+
   const options = createMemo<DialogSelectOption<string>[]>(() => {
     if (showError()) return []
     const list = skills() ?? []
     const maxWidth = Math.max(0, ...list.map((s) => s.name.length))
     return list.map((skill) => ({
-      title: skill.name.padEnd(maxWidth),
+      title: `[${skill.enabled ? "x" : " "}] ${skill.name.padEnd(maxWidth)}`,
       description: skill.description?.replace(/\s+/g, " ").trim(),
+      searchText: `${skill.id} ${skill.name} ${skill.description ?? ""}`,
+      footer: pending() === skill.id ? "updating" : undefined,
       value: skill.id,
-      onSelect: () => {
-        props.onSelect(skill.id)
-        dialog.clear()
-      },
     }))
   })
 
@@ -57,6 +89,22 @@ export function DialogSkill(props: DialogSkillProps) {
     <DialogSelect
       title="Skills"
       options={options()}
+      preserveSelection
+      onMove={(option) => setSelected(option.value)}
+      bindings={[
+        {
+          id: "dialog.skill.toggle",
+          bind: "space",
+          title: "Toggle skill",
+          group: "Dialog",
+          run: () => {
+            const first = options()[0]?.value
+            const id = selected() ?? first
+            if (id) void toggle(id)
+          },
+        },
+      ]}
+      footerHints={[{ title: "toggle", label: "space" }]}
       renderFilter={!showError() && !skills.loading}
       locked={showError() || skills.loading}
       emptyView={

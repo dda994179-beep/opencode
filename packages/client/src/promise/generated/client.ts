@@ -171,6 +171,8 @@ import type {
   CommandListOutput,
   SkillListInput,
   SkillListOutput,
+  SkillUpdateInput,
+  SkillUpdateOutput,
   EventSubscribeOutput,
   PtyListInput,
   PtyListOutput,
@@ -1490,6 +1492,19 @@ export function make(options: ClientOptions) {
             successStatus: 200,
             declaredStatuses: [401, 400],
             empty: false,
+          },
+          requestOptions,
+        ),
+      update: (input: SkillUpdateInput, requestOptions?: RequestOptions) =>
+        request<SkillUpdateOutput>(
+          {
+            method: "PATCH",
+            path: `/api/skill/${encodeURIComponent(input.skillID)}`,
+            query: { location: input["location"] },
+            body: { enabled: input["enabled"] },
+            successStatus: 204,
+            declaredStatuses: [404, 401, 400],
+            empty: true,
           },
           requestOptions,
         ),

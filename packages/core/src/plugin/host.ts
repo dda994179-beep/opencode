@@ -328,7 +328,8 @@ export const make = Effect.fn("PluginHost.make")(function* (plugin: import("../p
         }),
     },
     skill: {
-      list: () => response(skill.list()),
+      list: () => response(skill.status()),
+      update: (input) => skill.setEnabled(input.skillID, input.enabled),
       reload: skill.reload,
       transform: (callback) =>
         skill.transform((draft) => {

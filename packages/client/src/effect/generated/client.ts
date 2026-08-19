@@ -175,6 +175,8 @@ import type {
   Endpoint17_0Output,
   Endpoint18_0Input,
   Endpoint18_0Output,
+  Endpoint18_1Input,
+  Endpoint18_1Output,
   Endpoint19_0Output,
   Endpoint20_0Input,
   Endpoint20_0Output,
@@ -1037,7 +1039,16 @@ const Endpoint18_0 = (raw: RawClient["server.skill"]) => (input?: Endpoint18_0In
     raw["skill.list"]({ query: { location: input?.["location"] } }).pipe(Effect.mapError(mapClientError)),
   )
 
-const adaptGroup18 = (raw: RawClient["server.skill"]) => ({ list: Endpoint18_0(raw) })
+const Endpoint18_1 = (raw: RawClient["server.skill"]) => (input: Endpoint18_1Input) =>
+  preserveEffect<Endpoint18_1Output>()(
+    raw["skill.update"]({
+      params: { skillID: input["skillID"] },
+      query: { location: input["location"] },
+      payload: { enabled: input["enabled"] },
+    }).pipe(Effect.mapError(mapClientError)),
+  )
+
+const adaptGroup18 = (raw: RawClient["server.skill"]) => ({ list: Endpoint18_0(raw), update: Endpoint18_1(raw) })
 
 const Endpoint19_0 = (raw: RawClient["server.event"]) => () =>
   preserveStream<Endpoint19_0Output>()(

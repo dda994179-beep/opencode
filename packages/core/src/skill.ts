@@ -2,12 +2,13 @@ export * as Skill from "./skill.js"
 
 import { makeLocationNode } from "@opencode-ai/util/effect/app-node"
 import path from "path"
-import { Context, Effect, Layer, Types } from "effect"
+import { Context, Effect, Layer, Option, Schema, Types } from "effect"
 import { Skill } from "@opencode-ai/schema/skill"
 import { Agent } from "./agent.js"
 import { Bus } from "./bus.js"
 import { Permission } from "./permission.js"
 import { State } from "./state.js"
+import { KV } from "./kv.js"
 
 export const DirectorySource = Skill.DirectorySource
 export type DirectorySource = Skill.DirectorySource
@@ -23,12 +24,21 @@ export type Source = typeof Source.Type
 
 export const Info = Skill.Info
 export type Info = Skill.Info
+export const ListItem = Skill.ListItem
+export type ListItem = Skill.ListItem
 export const ID = Skill.ID
 export type ID = Skill.ID
 export const Name = Skill.Name
 export type Name = Skill.Name
 
 export { Event } from "@opencode-ai/schema/skill"
+
+export class NotFoundError extends Schema.TaggedError<NotFoundError>()("Skill.NotFoundError", {
+  id: ID,
+}) {}
+
+const Enabled = Schema.Record(Schema.String, Schema.Boolean)
+const EnabledKey = "skill:enabled"
 
 export const available = (skills: ReadonlyArray<Info>, agent: Agent.Info) =>
   skills.filter((skill) => Permission.evaluate("skill", skill.id, agent.permissions).effect !== "deny")
@@ -65,6 +75,8 @@ export type Draft = {
 
 export interface Interface extends State.Transformable<Draft> {
   readonly list: () => Effect.Effect<Info[]>
+  readonly status: () => Effect.Effect<ListItem[]>
+  readonly setEnabled: (id: ID, enabled: boolean) => Effect.Effect<void, NotFoundError>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/Skill") {}
@@ -73,6 +85,7 @@ const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const bus = yield* Bus.Service
+    const kv = yield* KV.Service
 
     const state = State.create<Data, Draft>({
       name: "skill",
@@ -101,6 +114,22 @@ const layer = Layer.effect(
       list: Effect.fn("Skill.list")(function* () {
         return Array.from(state.get().skills.values())
       }),
+      status: Effect.fn("Skill.status")(function* () {
+        const stored = yield* kv.get(EnabledKey)
+        const decoded = Schema.decodeUnknownOption(Enabled)(stored)
+        if (stored !== undefined && Option.isNone(decoded)) yield* kv.remove(EnabledKey)
+        const enabled: Readonly<Record<string, boolean>> = Option.getOrElse(decoded, () => ({}))
+        return Array.from(state.get().skills.values(), (skill) => ({
+          ...skill,
+          enabled: enabled[String(skill.id)] ?? skill.autoinvoke !== false,
+        }))
+      }),
+      setEnabled: Effect.fn("Skill.setEnabled")(function* (id, enabled) {
+        if (!state.get().skills.has(id)) yield* new NotFoundError({ id })
+        const stored = Schema.decodeUnknownOption(Enabled)(yield* kv.get(EnabledKey))
+        yield* kv.set(EnabledKey, { ...Option.getOrElse(stored, () => ({})), [id]: enabled })
+        yield* bus.publish(Skill.Event.Updated, {})
+      }),
     })
   }),
 )
@@ -108,5 +137,5 @@ const layer = Layer.effect(
 export const node = makeLocationNode({
   service: Service,
   layer,
-  deps: [Bus.node],
+  deps: [Bus.node, KV.node],
 })

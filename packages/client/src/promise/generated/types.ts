@@ -118,7 +118,7 @@ export type PermissionSavedInfo = { id: string; projectID: string; action: strin
 
 export type FileSystemEntry = { path: string; type: "file" | "directory" }
 
-export type SkillInfo = {
+export type SkillListItem = {
   id: string
   name: string
   description?: string
@@ -126,6 +126,7 @@ export type SkillInfo = {
   autoinvoke?: boolean
   location: string
   content: string
+  enabled: boolean
 }
 
 export type PermissionReply = "once" | "always" | "reject"
@@ -244,7 +245,7 @@ export type PromptFileAttachment = {
 
 export type PromptAgentAttachment = { name: string; mention?: PromptMention }
 
-export type PromptSkillAttachment = { id: string; name: string; text: string; mention?: PromptMention }
+export type PromptSkillAttachment = { id: string; name: string; text?: string; mention?: PromptMention }
 
 export type ToolFileContent = { type: "file"; uri: string; mime: string; name?: string | null }
 
@@ -2567,7 +2568,7 @@ export type SessionImportInput = {
           readonly skills?: ReadonlyArray<{
             readonly id: string
             readonly name: string
-            readonly text: string
+            readonly text?: string
             readonly mention?: { readonly start: number; readonly end: number; readonly text: string }
           }>
           readonly type: "user"
@@ -2836,7 +2837,7 @@ export type SessionImportInput = {
           readonly skills?: ReadonlyArray<{
             readonly id: string
             readonly name: string
-            readonly text: string
+            readonly text?: string
             readonly mention?: { readonly start: number; readonly end: number; readonly text: string }
           }>
           readonly type: "user"
@@ -3105,7 +3106,7 @@ export type SessionImportInput = {
           readonly skills?: ReadonlyArray<{
             readonly id: string
             readonly name: string
-            readonly text: string
+            readonly text?: string
             readonly mention?: { readonly start: number; readonly end: number; readonly text: string }
           }>
           readonly type: "user"
@@ -5370,8 +5371,18 @@ export type SkillListInput = {
 
 export type SkillListOutput = {
   location: { directory: string; workspaceID?: string; project: { id: string; directory: string; canonical: string } }
-  data: Array<SkillInfo>
+  data: Array<SkillListItem>
 }
+
+export type SkillUpdateInput = {
+  readonly skillID: { readonly skillID: string }["skillID"]
+  readonly location?: {
+    readonly location?: { readonly directory?: string | undefined; readonly workspace?: string | undefined } | undefined
+  }["location"]
+  readonly enabled: { readonly enabled: boolean }["enabled"]
+}
+
+export type SkillUpdateOutput = void
 
 export type EventSubscribeOutput = V2Event
 

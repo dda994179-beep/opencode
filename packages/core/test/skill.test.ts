@@ -52,6 +52,30 @@ describe("Skill", () => {
     }),
   )
 
+  it.effect("persists effective enablement separately from skill metadata", () =>
+    Effect.gen(function* () {
+      const skill = yield* Skill.Service
+      yield* skill.transform((draft) => {
+        draft.add(info("enabled-default", "Enabled by default"))
+        draft.add(Skill.Info.make({ ...info("manual-default", "Disabled by default"), autoinvoke: false }))
+      })
+
+      expect((yield* skill.status()).map((item) => [String(item.id), item.enabled] as const)).toEqual([
+        ["enabled-default", true],
+        ["manual-default", false],
+      ])
+
+      yield* skill.setEnabled(Skill.ID.make("enabled-default"), false)
+      yield* skill.setEnabled(Skill.ID.make("manual-default"), true)
+      expect((yield* skill.status()).map((item) => [String(item.id), item.enabled] as const)).toEqual([
+        ["enabled-default", false],
+        ["manual-default", true],
+      ])
+
+      expect((yield* Effect.flip(skill.setEnabled(Skill.ID.make("missing"), true)))._tag).toBe("Skill.NotFoundError")
+    }),
+  )
+
   it.effect("restores earlier values when an updating transform is disposed", () =>
     Effect.gen(function* () {
       const skill = yield* Skill.Service

@@ -6,7 +6,7 @@ import {
   type OpenCodeClient,
   type SessionInfo,
   type SessionMessageInfo,
-  type SkillInfo,
+  type SkillListItem,
 } from "@opencode-ai/client/promise"
 import { withTimestampedFallback } from "@opencode-ai/util/session-title-fallback"
 import type {
@@ -66,7 +66,7 @@ type Catalog = {
   readonly modes: Array<{ id: string; name: string; description?: string }>
   readonly defaultModeID: string
   readonly commands: CommandInfo[]
-  readonly skills: SkillInfo[]
+  readonly skills: SkillListItem[]
 }
 
 type Attached = {
@@ -85,7 +85,7 @@ type PreparedPrompt = {
   readonly synthetic: ReadonlyArray<string>
   readonly slash?: { readonly name: string; readonly args: string }
   readonly command?: CommandInfo
-  readonly skill?: SkillInfo
+  readonly skill?: SkillListItem
 }
 
 export interface Interface {
@@ -392,7 +392,7 @@ async function submitPrompt(client: OpenCodeClient, session: Attached, prompt: P
   )
 }
 
-function turnStart(messageID: string, slash: PreparedPrompt["slash"], skill: SkillInfo | undefined): TurnStart {
+function turnStart(messageID: string, slash: PreparedPrompt["slash"], skill: SkillListItem | undefined): TurnStart {
   if (slash?.name === "compact") return { type: "compaction", id: messageID }
   if (skill) return { type: "skill", id: messageID }
   return { type: "input", id: messageID }

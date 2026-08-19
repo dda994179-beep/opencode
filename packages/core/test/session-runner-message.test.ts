@@ -239,6 +239,32 @@ Recent work
     })
   })
 
+  test("does not inject skill content for reference-only attachments", () => {
+    const messages = toLLMMessages(
+      [
+        SessionMessage.User.make({
+          id: id("user-skill-reference"),
+          type: "user",
+          text: "Use @api-design",
+          skills: [
+            SkillAttachment.make({
+              id: Skill.ID.make("api-design"),
+              name: Skill.Name.make("API design"),
+              mention: { start: 4, end: 15, text: "@api-design" },
+            }),
+          ],
+          time: { created },
+        }),
+      ],
+      model,
+    )
+
+    expect(messages[0]).toMatchObject({
+      role: "user",
+      content: [{ type: "text", text: "Use @api-design" }],
+    })
+  })
+
   test("decodes inline text attachment content", () => {
     const messages = toLLMMessages(
       [

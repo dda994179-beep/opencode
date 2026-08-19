@@ -6,7 +6,7 @@ import {
   type ModelInfo,
   type ModelRef,
   type SessionInfo,
-  type SkillInfo,
+  type SkillListItem,
   type TokenUsageInfo,
 } from "@opencode-ai/client/promise"
 import { ACPService } from "../../src/acp/service"
@@ -34,7 +34,7 @@ type FixtureOptions = {
   readonly defaultModel?: ModelInfo
   readonly agents?: readonly AgentInfo[]
   readonly commands?: readonly CommandInfo[]
-  readonly skills?: readonly SkillInfo[]
+  readonly skills?: readonly SkillListItem[]
 }
 
 export const testModel = {
@@ -97,7 +97,8 @@ export const verifySkill = {
   slash: true,
   location: "/skills/verify.md",
   content: "verify",
-} satisfies SkillInfo
+  enabled: true,
+} satisfies SkillListItem
 
 export function makeSession(
   id: string,

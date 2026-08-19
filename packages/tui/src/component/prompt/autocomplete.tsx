@@ -19,7 +19,7 @@ import { Locale } from "../../util/locale"
 import type { PromptInfo, PromptPartRef } from "../../prompt/history"
 import { useFrecency } from "../../prompt/frecency"
 import { Keymap, type KeymapCommand } from "../../context/keymap"
-import { displayCharAt, mentionTriggerIndex, slashTriggerIndex } from "../../prompt/display"
+import { displayCharAt, mentionTriggerIndex, skillTriggerIndex, slashTriggerIndex } from "../../prompt/display"
 import type { FileSystemEntry } from "@opencode-ai/client"
 import { Skill } from "@opencode-ai/schema/skill"
 import { stringWidth } from "../../util/string-width"
@@ -35,7 +35,7 @@ import {
 
 export type AutocompleteRef = {
   onInput: (value: string) => void
-  visible: false | "reference" | "command" | "directory"
+  visible: false | "reference" | "skill" | "command" | "directory"
 }
 
 export type AutocompleteOption = {
@@ -169,6 +169,7 @@ export function Autocomplete(props: {
       | { type: "file"; value: NonNullable<PromptInfo["files"]>[number]; path?: string }
       | { type: "agent"; value: NonNullable<PromptInfo["agents"]>[number] }
       | { type: "skill"; value: NonNullable<PromptInfo["skills"]>[number] },
+    marker?: "@" | "$",
   ) {
     if (part.type === "skill" && props.hasSkill(part.value.id)) return
     const input = props.input()
@@ -176,7 +177,7 @@ export function Autocomplete(props: {
 
     const charAfterCursor = displayCharAt(props.value, currentCursorOffset)
     const needsSpace = charAfterCursor !== " "
-    const prefix = part.type === "skill" ? "/" : "@"
+    const prefix = part.type === "skill" ? (marker ?? "@") : "@"
     const append = prefix + text + (needsSpace ? " " : "")
 
     input.cursorOffset = store.index
@@ -336,7 +337,7 @@ export function Autocomplete(props: {
   const [files] = createResource(
     () => ({ query: search(), location: location.current, visible: store.visible }),
     async (input, info): Promise<AutocompleteResults> => {
-      if (!input.visible || input.visible === "command")
+      if (!input.visible || input.visible === "command" || input.visible === "skill")
         return { options: [], failed: false, mode: input.visible, query: input.query, resolved: true }
       if (referenceMatch())
         return { options: [], failed: false, mode: input.visible, query: input.query, resolved: true }
@@ -478,6 +479,31 @@ export function Autocomplete(props: {
       )
   })
 
+  const skillOptions = (marker: "@" | "$") =>
+    (data.location.skill.list(location.current) ?? []).map(
+      (skill): AutocompleteOption => ({
+        display: marker + skill.id,
+        description:
+          marker === "$" && skill.description
+            ? Locale.truncateWidth(
+                skill.description.replace(/\s+/g, " ").trim(),
+                Math.min(64, Math.max(0, props.anchor().width - stringWidth(marker + skill.id) - 5)),
+              )
+            : skill.description,
+        kind: "skill",
+        onSelect: () => {
+          insertPart(
+            skill.id,
+            {
+              type: "skill",
+              value: { id: Skill.ID.make(skill.id), mention: { start: 0, end: 0, text: "" } },
+            },
+            marker,
+          )
+        },
+      }),
+    )
+
   const referenceAliases = createMemo(() =>
     references()
       .filter((reference) => !reference.hidden)
@@ -537,11 +563,7 @@ export function Autocomplete(props: {
         display: "/" + skill.id,
         description: skill.description,
         kind: "skill",
-        onSelect: () =>
-          insertPart(skill.id, {
-            type: "skill",
-            value: { id: Skill.ID.make(skill.id), mention: { start: 0, end: 0, text: "" } },
-          }),
+        onSelect: () => insertSlash(skill.id),
       })
     }
 
@@ -592,10 +614,12 @@ export function Autocomplete(props: {
     const fileOptions: AutocompleteOption[] = store.visible === "reference" ? fileSearch.options : []
     const nonFileOptions: AutocompleteOption[] =
       store.visible === "reference"
-        ? [...referenceAliasesValue, ...agentsValue, ...mcpResources()]
-        : store.index === 0
-          ? [...commandsValue]
-          : commandsValue.filter((item) => item.kind === "skill")
+        ? [...skillOptions("@"), ...referenceAliasesValue, ...agentsValue, ...mcpResources()]
+        : store.visible === "skill"
+          ? skillOptions("$")
+          : store.index === 0
+            ? [...commandsValue]
+            : []
 
     if (!searchValue) {
       return [...nonFileOptions, ...fileOptions]
@@ -614,7 +638,14 @@ export function Autocomplete(props: {
         scoreFn: (objResults) => {
           const displayResult = objResults[0]
           let score = objResults.score
-          const prefix = store.visible === "reference" ? "@" : store.visible === "command" ? "/" : ""
+          const prefix =
+            store.visible === "reference"
+              ? "@"
+              : store.visible === "skill"
+                ? "$"
+                : store.visible === "command"
+                  ? "/"
+                  : ""
           if (displayResult && displayResult.target.startsWith(prefix + searchValue)) {
             score *= 2
           }
@@ -837,6 +868,13 @@ export function Autocomplete(props: {
           return
         }
 
+        const skill = skillTriggerIndex(value, offset)
+        if (skill !== undefined) {
+          show("skill")
+          setStore("index", skill)
+          return
+        }
+
         // Check for "@" trigger - find the nearest "@" before cursor with no whitespace between
         const idx = mentionTriggerIndex(value, offset)
         if (idx !== undefined) {
@@ -859,6 +897,7 @@ export function Autocomplete(props: {
   const emptyMessage = createMemo(() => {
     const fileSearch = visibleFiles()
     if (store.visible === "command") return "No matching commands"
+    if (store.visible === "skill") return "No matching skills"
     if (store.visible === "directory") {
       if (files.loading) return "Searching…"
       if (fileSearch.failed) return "Could not search directories. Keep typing to try again."

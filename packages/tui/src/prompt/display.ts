@@ -38,8 +38,16 @@ export function displayCharAt(value: string, offset: number) {
 }
 
 export function mentionTriggerIndex(value: string, offset = promptOffsetWidth(value)) {
+  return referenceTriggerIndex(value, "@", offset)
+}
+
+export function skillTriggerIndex(value: string, offset = promptOffsetWidth(value)) {
+  return referenceTriggerIndex(value, "$", offset)
+}
+
+function referenceTriggerIndex(value: string, marker: "@" | "$", offset: number) {
   const text = displaySlice(value, 0, offset)
-  const index = text.lastIndexOf("@")
+  const index = text.lastIndexOf(marker)
   if (index === -1) return
 
   const before = index === 0 ? undefined : text[index - 1]

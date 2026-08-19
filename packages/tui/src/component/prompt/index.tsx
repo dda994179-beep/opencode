@@ -30,7 +30,6 @@ import { stringWidth } from "../../util/string-width"
 import { createStore, produce, unwrap } from "solid-js/store"
 import { emptyPrompt, usePromptHistory, type PromptInfo, type PromptPartRef } from "../../prompt/history"
 import { saveDraft, takeDraft } from "./draft-stash"
-import { Skill } from "@opencode-ai/schema/skill"
 import { computePromptTraits } from "../../prompt/traits"
 import { expandPastedTextPlaceholders, expandTrackedPastedText } from "../../prompt/part"
 import { usePromptStash } from "../../prompt/stash"
@@ -588,36 +587,7 @@ export function Prompt(props: PromptProps) {
         category: "Prompt",
         slash: { name: "skills" },
         run: () => {
-          dialog.replace(() => (
-            <DialogSkill
-              location={currentLocation.current}
-              onSelect={(skill) => {
-                if (store.prompt.skills?.some((item) => item.id === skill)) return
-                const text = `/${skill}`
-                const start = input.cursorOffset
-                input.insertText(text + " ")
-                const extmarkId = input.extmarks.create({
-                  start,
-                  end: start + promptOffsetWidth(text),
-                  virtual: true,
-                  styleId: skillStyleId,
-                  typeId: promptPartTypeId,
-                })
-                setStore(
-                  produce((draft) => {
-                    draft.prompt.text = input.plainText
-                    const skills = (draft.prompt.skills ??= [])
-                    const index = skills.length
-                    skills.push({
-                      id: Skill.ID.make(skill),
-                      mention: { start, end: start + promptOffsetWidth(text), text },
-                    })
-                    draft.extmarkToPart.set(extmarkId, { type: "skill", index })
-                  }),
-                )
-              }}
-            />
-          ))
+          dialog.replace(() => <DialogSkill location={currentLocation.current} />)
         },
       },
       {
@@ -1133,7 +1103,6 @@ export function Prompt(props: PromptProps) {
     )
     const slashHead = parseSlashHead(inputText, /\s/)
     const isSkill =
-      !(store.prompt.skills?.length ?? 0) &&
       slashHead !== undefined &&
       (data.location.skill.list(currentLocation.ref) ?? []).some(
         (skill) => skill.slash === true && skill.id === slashHead.name,
